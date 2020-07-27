@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".Select_exercise">
+
+    <Button
+        android:id="@+id/bu_exercise1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="80dp"
+        android:width="200dp"
+        android:height="80dp"
+        android:text="기초운동"
+        android:textSize="30dp"
+        android:background="#FFFFFF"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/title_text" />
+
+    <Button
+        android:id="@+id/bu_exercise2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="30dp"
+        android:width="200dp"
+        android:height="80dp"
+        android:text="중-고급운동"
+        android:textSize="30dp"
+        android:background="#FFFFFF"
+        app:layout_constraintStart_toStartOf="@+id/bu_exercise1"
+        app:layout_constraintTop_toBottomOf="@+id/bu_exercise1" />
+
+    <Button
+        android:id="@+id/bu_exercise3"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="30dp"
+        android:width="200dp"
+        android:height="80dp"
+        android:text="치료용 운동"
+        android:textSize="30dp"
+        android:background="#FFFFFF"
+        app:layout_constraintStart_toStartOf="@+id/bu_exercise2"
+        app:layout_constraintTop_toBottomOf="@+id/bu_exercise2" />
+
+    <Button
+        android:id="@+id/bu_exercise4"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="30dp"
+        android:width="200dp"
+        android:height="80dp"
+        android:text="운동 만들기"
+        android:textSize="30dp"
+        android:background="#FFFFFF"
+        app:layout_constraintStart_toStartOf="@+id/bu_exercise3"
+        app:layout_constraintTop_toBottomOf="@+id/bu_exercise3" />
+
+    <TextView
+        android:id="@+id/title_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="61dp"
+        android:text="운동선택"
+        android:textSize="30dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+</androidx.constraintlayout.widget.ConstraintLayout>

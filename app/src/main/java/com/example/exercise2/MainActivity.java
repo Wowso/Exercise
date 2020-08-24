@@ -28,31 +28,28 @@ import java.util.concurrent.Delayed;
 
 public class MainActivity extends AppCompatActivity implements Button.OnClickListener {
     private static final int REQUEST_ENABLE_BT = 10; // 블루투스 활성화
-    private BluetoothAdapter bluetoothAdapter; // 블루투스 어댑터
-    private Set<BluetoothDevice> devices; // 블루투스 디바이스 데이터 셋
-    private BluetoothDevice bluetoothDevice; //블루투스 디바이스
-    private BluetoothSocket bluetoothSocket = null; //블루투스 소켓
-    private OutputStream outputStream = null; // 블루투스에 데이터를 출력하기 위한 출력 스트림
-    private InputStream inputStream = null; //블루투스에 데이터를 입력하기 위한 입력 스트림
-    private Thread workerThread = null; //문자열 수신에 사용되는 쓰레드
-    private byte[] readBuffer; //수신 된 문자열을 저장하기 위한 버퍼
-    private int readBufferPosition; //버퍼 내 문자 저장 위치
+    private static BluetoothAdapter bluetoothAdapter; // 블루투스 어댑터
+    private static Set<BluetoothDevice> devices; // 블루투스 디바이스 데이터 셋
+    private static BluetoothDevice bluetoothDevice; //블루투스 디바이스
+    private static BluetoothSocket bluetoothSocket = null; //블루투스 소켓
+    private static OutputStream outputStream = null; // 블루투스에 데이터를 출력하기 위한 출력 스트림
+    private static InputStream inputStream = null; //블루투스에 데이터를 입력하기 위한 입력 스트림
+    private static Thread workerThread = null; //문자열 수신에 사용되는 쓰레드
+    private static byte[] readBuffer; //수신 된 문자열을 저장하기 위한 버퍼
+    private static int readBufferPosition; //버퍼 내 문자 저장 위치
     public static Context mContext;
 
-    private Button buttonBlueSet; //블루투스 연결 설정
-    private Button buttonRecord_exercise; //운동 기록 버튼
-    private Button buttonTest3; //미정 버튼
-    private Button buttonExercise; //운동 선택 버튼
+    private static Button buttonBlueSet; //블루투스 연결 설정
+    private static Button buttonRecord_exercise; //운동 기록 버튼
+    private static Button buttonTest3; //미정 버튼
+    private static Button buttonExercise; //운동 선택 버튼
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
         setup(); //변수 객체 초기화
-
-
     }
 
     @Override
@@ -214,15 +211,14 @@ public class MainActivity extends AppCompatActivity implements Button.OnClickLis
         workerThread = new Thread(new Runnable() {
             @Override
             public void run() {
-                Log.d("ttt","데이터 수신");
                 while (!Thread.currentThread().isInterrupted()){
                     try{
                         //데이터를 수신했는지 확인
                         int byteAvailable = inputStream.available();
-                        Log.d("ttt","데이터 수신");
                         //데이터가 수신된 경우
                         if(byteAvailable > 0)
                         {
+                            Log.d("ttt","데이터 수신");
                             byte[] bytes = new byte[byteAvailable];
                             inputStream.read(bytes);
 
@@ -230,7 +226,7 @@ public class MainActivity extends AppCompatActivity implements Button.OnClickLis
                             for(int i = 0; i< byteAvailable; i++){
                                 byte tempByte = bytes[i];
                                 //개행문자를 기준으로 받음(한줄)
-                                Log.d("ttt",new String(bytes, "US-ASCII"));
+
                                 if(tempByte == '\n'){
                                     //readBuffer 배열을 encodedByte로 복사
 
@@ -239,7 +235,6 @@ public class MainActivity extends AppCompatActivity implements Button.OnClickLis
 
                                     //인코딩 된 바이트 배열을 문자열로 변환
                                     final String text = new String(encodedBytes, "US-ASCII");
-                                    Log.d("ttt",text);
                                     readBufferPosition = 0;
                                     handler.post(new Runnable() {
                                         @Override
@@ -260,7 +255,7 @@ public class MainActivity extends AppCompatActivity implements Button.OnClickLis
                     }
                     try{
                         //1초마다 받아옴
-                        Thread.sleep(1000);
+                        Thread.sleep(10);
 
                     }catch (InterruptedException e){
                         e.printStackTrace();

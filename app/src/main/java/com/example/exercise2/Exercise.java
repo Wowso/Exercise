@@ -7,12 +7,9 @@ import android.app.Activity;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.database.CursorJoiner;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Color;
-import android.hardware.Sensor;
-import android.hardware.SensorEvent;
-import android.hardware.SensorEventListener;
-import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -61,10 +58,6 @@ public class Exercise extends AppCompatActivity {
     private long mDbId = -1;
     private int count=0;
 
-    private SensorManager mSensorManager = null;
-    private SensorEventListener mGyroLis;
-    private Sensor mGyroSensor = null;
-
     private Button mBu_End;
     private Button mBu_Random;
     private TextView vGoals_Text;
@@ -73,8 +66,10 @@ public class Exercise extends AppCompatActivity {
 
     private float[] target_X = {0f, 10f, -10f};
     private float[] target_Y = {0f, 10f, -10f};
-    double gyroX =0f;
-    double gyroY =0f;
+    private double gyroX =0f;
+    private double gyroY =0f;
+    private double gyroX_init = 0f;
+    private double gyroY_init = 0f;
 
     private String[] arr= {"01","02","00","10","20","00"}; //좌표 이동 순서
     private int A=0;
@@ -86,6 +81,9 @@ public class Exercise extends AppCompatActivity {
     private boolean start_Check = false;
     private static Handler mHandler;
     private boolean Stopflag = true;
+
+    private boolean gyroX_Check = false;
+    private boolean gyroY_Check = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -100,12 +98,10 @@ public class Exercise extends AppCompatActivity {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                if(start_Check == false)
+                while(!start_Check)
                 {
                     sendD("a");
-                    sendD("a");
-                    sendD("a");
-                    Stopflag =false;
+                    //Stopflag = false;
                     //sendD("n");
                 }
                 while (!Stopflag){
@@ -117,7 +113,7 @@ public class Exercise extends AppCompatActivity {
                         }
                     });
                     try {
-                        Thread.sleep(50);
+                        Thread.sleep(10);
                     }catch (Exception e){
                         e.printStackTrace();
                     }
@@ -130,6 +126,7 @@ public class Exercise extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 Stopflag = true;
+                //start_Check = true;
                 sendD("q");
                 db_Input(0); //db 데이터 삽입
                 Intent intent;
@@ -166,45 +163,45 @@ public class Exercise extends AppCompatActivity {
         start_Check = false;
 
 
-        //핸드폰 자이로 센서(추후 교체)
-        mSensorManager = (SensorManager)getSystemService(Context.SENSOR_SERVICE);
-        mGyroSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
-        mGyroLis = new GyroscopeListener();
-        mSensorManager.registerListener(mGyroLis, mGyroSensor, SensorManager.SENSOR_DELAY_UI); //센서 실행
-        //mSensorManager.unregisterListener(mGyroLis); //센서 종료
     }
 
     public void db_Input(int flag){
         SimpleDateFormat format1 = new SimpleDateFormat ( "yyyy-MM-dd:HH:mm:ss");
         Date time = new Date();
         String time1 = format1.format(time);
-
-        if(flag == 1)
+        if(count > 0 || flag == 1)
         {
-            long random = ThreadLocalRandom.current().nextLong(start,end);
-            time = new Date(random);
-            time1 = format1.format(time);
-            count = (int)(Math.random()*10)%11;
-            start =time.getTime();
-        }
+            if(flag == 1)
+            {
+                long random = ThreadLocalRandom.current().nextLong(start,end);
+                time = new Date(random);
+                time1 = format1.format(time);
+                count = (int)(Math.random()*10)%11;
+                start =time.getTime();
+            }
 
-        ContentValues contentValues = new ContentValues();
-        contentValues.put(DbContract.DbEntry.COLUMN_DATE, time1);
-        contentValues.put(DbContract.DbEntry.COLUMN_COUNT, count);
+            ContentValues contentValues = new ContentValues();
+            contentValues.put(DbContract.DbEntry.COLUMN_DATE, time1);
+            contentValues.put(DbContract.DbEntry.COLUMN_COUNT, count);
 
-        SQLiteDatabase db = DbHelper.getInstance(this).getWritableDatabase();
-        if(mDbId == -1) // 처음 저장 할때 id defalut값은 -1
-        {
-            long newRowId = db.insert(DbContract.DbEntry.TABLE_NAME, null, contentValues);
-            Log.d("ttt","RowId : "+newRowId);
-            if(newRowId == -1){
-                Toast.makeText(this, "저장에 문제가 발생했습니다", Toast.LENGTH_SHORT).show();
-            }else{
-                Toast.makeText(this, "저장되었습니다", Toast.LENGTH_SHORT).show();
-                Log.d("ttt","ID : " + DbContract.DbEntry._ID +" 시간 : " + time1 + " 횟수 : " + count + " X : " + target_X[A] + " Y : " + target_Y[B] + " cValue :" + cValue);
-                //setResult(RESULT_OK);
+            SQLiteDatabase db = DbHelper.getInstance(this).getWritableDatabase();
+            if(mDbId == -1) // 처음 저장 할때 id defalut값은 -1
+            {
+                long newRowId = db.insert(DbContract.DbEntry.TABLE_NAME, null, contentValues);
+                Log.d("ttt","RowId : "+newRowId);
+                if(newRowId == -1){
+                    Toast.makeText(this, "저장에 문제가 발생했습니다", Toast.LENGTH_SHORT).show();
+                }else{
+                    Toast.makeText(this, "저장되었습니다", Toast.LENGTH_SHORT).show();
+                    Log.d("ttt","ID : " + DbContract.DbEntry._ID +" 시간 : " + time1 + " 횟수 : " + count + " X : " + target_X[A] + " Y : " + target_Y[B] + " cValue :" + cValue);
+                    //setResult(RESULT_OK);
+                }
             }
         }
+        else{
+            Toast.makeText(this, "횟수가 없기 때문에 저장하지 않습니다.", Toast.LENGTH_SHORT).show();
+        }
+
     }
 
     public void MessagePr(String s) {
@@ -219,49 +216,51 @@ public class Exercise extends AppCompatActivity {
 
     public void Message_Read(String str)
     {
-        Log.d("tttt",str);
-        if (str.indexOf(0) == 'A') {
-            gyroX = Double.parseDouble(str.substring(1));
+        String Check_text = new String(str.substring(0,1));
+
+        if (Check_text.equals("A")) {
+            gyroY = Double.parseDouble(str.substring(1)) + gyroY_init;
+            Log.d("ttt",String.valueOf(gyroY));
+            if(!gyroY_Check)
+            {
+                gyroY_init = gyroY;
+                gyroY_Check = true;
+            }
         }
-        else if(str.indexOf(0) == 'M')
+        else if(Check_text.equals("M"))
         {
-            gyroY = Double.parseDouble(str.substring(1));
+            gyroX = Double.parseDouble(str.substring(1)) + gyroX_init;
+            Log.d("ttt",String.valueOf(gyroX));
+            if(!gyroX_Check)
+            {
+                gyroX_init = - gyroX;
+                gyroX_Check = true;
+            }
         }
 
         if(str.equals("o"))
         {
+
+            Log.d("ttt","Machine Start");
             start_Check = true;
             Stopflag = false;
+            sendD("n");
         }
         if (str.equals("e"))
         {
-            //Stopflag = true;
+            Stopflag = true;
         }
     }
 
-    private class GyroscopeListener implements SensorEventListener{
-        @Override
-        public void onSensorChanged(SensorEvent event) {
-            double gyroX = event.values[0];
-            double gyroY = event.values[1];
-            double gyroZ = event.values[2];
-
-        }
-
-        @Override
-        public void onAccuracyChanged(Sensor sensor, int accuracy) {
-
-        }
-    }
 
 
     private void Chartinit(){
         //차트 데이터 추가
         ArrayList<Entry> entries = new ArrayList<>();
-        entries.add(new Entry(3,3));
+        entries.add(new Entry(0,0));
 
         ArrayList<Entry> entries2 = new ArrayList<>();
-        entries2.add(new Entry(3,3.7f));
+        entries2.add(new Entry(0,0));
 
         dataSet = new LineDataSet(entries, "현재위치");
         dataSet2 = new LineDataSet(entries2, "운동방향");
@@ -339,13 +338,14 @@ public class Exercise extends AppCompatActivity {
     void Activity_Refresh() //TextView 처리
     {
         if(start_Check)
-            ChartRefresh(gyroY,gyroX);
+            ChartRefresh(-gyroY,gyroX);
         vCount_Text.setText(String.valueOf(count));
         vGoals_Text.setText(Math.round((float)count/(float)max_Count*100)+"%");
         vRemain_Text.setText(String.valueOf(max_Count-count));
         if(max_Count==count&&!Stopflag) // 모든 횟수를 끝마쳐서 저장 후 메인 이동
         {
             Stopflag = true;
+            sendD("q");
             db_Input(0);
             Activity_Change();
         }
@@ -435,7 +435,7 @@ public class Exercise extends AppCompatActivity {
     void check_Count(float X1, float Y1,float X2, float Y2,float area)
     {
 
-        if(((X2-area)<=X1&&(X2+area)>=X1)&&((Y2-area)<=Y1&&(Y2+area)>=Y1)&&change_Check == false) // X2,Y2 +-1f 범위에 X1.Y1이 들어왔을 경우 카운트+ 그리고 change_Check 카운트가 false일때
+        if(((X2-area)<=X1&&(X2+area)>=X1)&&((Y2-area)<=Y1&&(Y2+area)>=Y1)&&!change_Check) // X2,Y2 +-1f 범위에 X1.Y1이 들어왔을 경우 카운트+ 그리고 change_Check 카운트가 false일때
         {
             change_Check = true;
             lineChart.animateY(1000, Easing.EaseInCubic);

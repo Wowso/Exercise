@@ -1,7 +1,4 @@
-package com.example.exercise2;
-
-import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatActivity;
+package com.example.exercise2.ui.record;
 
 import android.content.Intent;
 import android.database.Cursor;
@@ -9,14 +6,28 @@ import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.provider.BaseColumns;
-import android.provider.Settings;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.Button;
+import android.widget.Spinner;
 import android.widget.Toast;
 
-import com.github.mikephil.charting.animation.Easing;
-import com.github.mikephil.charting.charts.Chart;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.ActionBar;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProviders;
+
+import com.example.exercise2.DbContract;
+import com.example.exercise2.DbHelper;
+import com.example.exercise2.MainActivity;
+import com.example.exercise2.MyMarkerView;
+import com.example.exercise2.R;
+import com.example.exercise2.datePickerActivity;
 import com.github.mikephil.charting.charts.LineChart;
 import com.github.mikephil.charting.components.AxisBase;
 import com.github.mikephil.charting.components.Description;
@@ -30,18 +41,18 @@ import com.github.mikephil.charting.formatter.IAxisValueFormatter;
 import com.github.mikephil.charting.highlight.Highlight;
 import com.github.mikephil.charting.listener.OnChartValueSelectedListener;
 
-import java.lang.reflect.Array;
-import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.Locale;
-import java.util.TimeZone;
 
-public class Record_exercise extends AppCompatActivity implements Button.OnClickListener {
+public class RecordFragment extends Fragment implements Button.OnClickListener{
 
+    private RecordViewModel galleryViewModel;
     static final int REQ_ADD_FDATE = 1;
     static final int REQ_ADD_EDATE = 2;
 
@@ -51,10 +62,9 @@ public class Record_exercise extends AppCompatActivity implements Button.OnClick
 
     private LineData data;
     private Button bu_Delete;
-    private Button bu_Month;
-    private Button bu_Day;
     private Button bu_Fdate;
     private Button bu_Edate;
+    private Spinner spinner;
 
     private int chartFlag = 2; //default = -1
 
@@ -85,108 +95,109 @@ public class Record_exercise extends AppCompatActivity implements Button.OnClick
     ArrayList<Entry> entries = new ArrayList<>();
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_record_exercise);
-
-        setup();
-        Db_setup();
-        Chartinit();
     }
 
     @Override
+    public void onStop() {
+        super.onStop();
+
+    }
+
+    public View onCreateView(@NonNull LayoutInflater inflater,
+                             ViewGroup container, Bundle savedInstanceState) {
+        galleryViewModel =
+                ViewModelProviders.of(this).get(RecordViewModel.class);
+        View root = inflater.inflate(R.layout.fragment_record, container, false);
+        setup(root);
+        Db_setup();
+        Chartinit();
+        return root;
+    }
+    @Override
     public void onClick(View view) {
-        Intent intent;
         switch (view.getId()) {
             case R.id.bu_delete:
-                SQLiteDatabase db = DbHelper.getInstance(this).getWritableDatabase();
+                SQLiteDatabase db = DbHelper.getInstance(getActivity()).getWritableDatabase();
                 int count = db.delete(DbContract.DbEntry.TABLE_NAME, null, null);
                 if (count == 0) {
-                    Toast.makeText(this, "삭제에 문제가 발생하였습니다", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getActivity(), "삭제에 문제가 발생하였습니다", Toast.LENGTH_SHORT).show();
                 } else {
                     lineChart.invalidate();
                     lineChart.clear();
-                    Toast.makeText(this, "성공적으로 삭제가 되었습니다", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getActivity(), "성공적으로 삭제가 되었습니다", Toast.LENGTH_SHORT).show();
                 }
                 break;
-            case R.id.bu_month:
-                chartFlag = 1;
-                entries = new ArrayList<>();
-                setup();
-                Db_setup();
-                Chartinit();
-                Toast.makeText(this, "월별로 출력합니다", Toast.LENGTH_SHORT).show();
-                break;
-            case R.id.bu_day:
-                chartFlag=2;
-                entries =new ArrayList<>();
-                setup();
-                Db_setup();
-                Chartinit();
-                Toast.makeText(this, "일별로 출력합니다", Toast.LENGTH_SHORT).show();
-
-                break;
             case R.id.bu_fdate:
-                intent = new Intent(Record_exercise.this, datePickerActivity.class);
-                intent.putExtra("mYear", mfYear);
-                intent.putExtra("mMonth", mfMonth);
-                intent.putExtra("mDay",mfDay);
-                startActivityForResult(intent, REQ_ADD_FDATE);
+                ((MainActivity)getActivity()).open_datePicker(mfYear,mfMonth,mfDay,1);
                 break;
             case R.id.bu_edate:
-                intent = new Intent(Record_exercise.this, datePickerActivity.class);
-                intent.putExtra("mYear", meYear);
-                intent.putExtra("mMonth", meMonth);
-                intent.putExtra("mDay",meDay);
-                startActivityForResult(intent, REQ_ADD_EDATE);
+                ((MainActivity)getActivity()).open_datePicker(meYear,meMonth,meDay,2);
                 break;
         }
     }
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        if(requestCode == REQ_ADD_FDATE)
+    public void date_picker(int Year, int Month, int Day, int key) {
+        if(key == 1)
         {
-            if(resultCode == RESULT_OK)
-            {
-                mfYear = data.getExtras().getInt("mYear");
-                mfMonth = data.getExtras().getInt("mMonth");
-                mfDay = data.getExtras().getInt("mDay");
-                bu_Fdate.setText(mfYear+"-"+mfMonth+"-"+mfDay);
-                start_date=stringToLong(mfYear+"-"+mfMonth+"-"+mfDay+":00:00:00");
-            }
+            mfYear = Year;
+            mfMonth = Month;
+            mfDay = Day;
+            bu_Fdate.setText(mfYear+"-"+mfMonth+"-"+mfDay);
+            start_date=stringToLong(mfYear+"-"+mfMonth+"-"+mfDay+":00:00:00");
         }
-        else if(requestCode == REQ_ADD_EDATE)
+        else if(key == 2)
         {
-            if(resultCode == RESULT_OK)
-            {
-                meYear = data.getExtras().getInt("mYear");
-                meMonth = data.getExtras().getInt("mMonth");
-                meDay = data.getExtras().getInt("mDay");
-                bu_Edate.setText(meYear+"-"+meMonth+"-"+meDay);
-                end_date=stringToLong(meYear+"-"+meMonth+"-"+meDay+":00:00:00");
-            }
+            meYear = Year;
+            meMonth = Month;
+            meDay = Day;
+            bu_Edate.setText(meYear+"-"+meMonth+"-"+meDay);
+            end_date=stringToLong(meYear+"-"+meMonth+"-"+meDay+":00:00:00");
         }
         entries =new ArrayList<>();
-        setup();
+        //setup(getView());
         Db_setup();
         Chartinit();
-
-        super.onActivityResult(requestCode, resultCode, data);
     }
 
-    private void setup() {
-        lineChart = (LineChart) findViewById(R.id.lineChart);
-        bu_Delete = (Button) findViewById(R.id.bu_delete);
+    private void setup(View view) {
+        lineChart = (LineChart)view.findViewById(R.id.lineChart);
+        bu_Delete = (Button)view.findViewById(R.id.bu_delete);
         bu_Delete.setOnClickListener(this);
-        bu_Month = (Button) findViewById(R.id.bu_month);
-        bu_Month.setOnClickListener(this);
-        bu_Day = (Button) findViewById(R.id.bu_day);
-        bu_Day.setOnClickListener(this);
-        bu_Fdate = (Button)findViewById(R.id.bu_fdate);
+        bu_Fdate = (Button)view.findViewById(R.id.bu_fdate);
         bu_Fdate.setOnClickListener(this);
-        bu_Edate = (Button)findViewById(R.id.bu_edate);
+        bu_Edate = (Button)view.findViewById(R.id.bu_edate);
         bu_Edate.setOnClickListener(this);
+        spinner = (Spinner)view.findViewById(R.id.spinner);
+        spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener(){
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                if(position == 0)
+                {
+                    chartFlag=2;
+                    entries =new ArrayList<>();
+                    //setup(view);
+                    Db_setup();
+                    Chartinit();
+                    Toast.makeText(getActivity(), "일별로 출력합니다", Toast.LENGTH_SHORT).show();
+                }
+                else if(position == 1)
+                {
+                    chartFlag = 1;
+                    entries = new ArrayList<>();
+                    //setup(view);
+                    Db_setup();
+                    Chartinit();
+                    Toast.makeText(getActivity(), "월별로 출력합니다", Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+
+            }
+        });
 
         yearCount = 0;
         monthCount = 0;
@@ -202,9 +213,12 @@ public class Record_exercise extends AppCompatActivity implements Button.OnClick
     public void Db_setup() { //Db에서 데이터 로드
 
         mCount = 0;
+        yearCount = 0;
+        monthCount = 0;
+        dayCount = 0;
         last_flag = false;
         //before_ldate=0l;
-        SQLiteDatabase db = DbHelper.getInstance(this).getReadableDatabase();
+        SQLiteDatabase db = DbHelper.getInstance(getActivity()).getReadableDatabase();
         String[] projection = {
                 BaseColumns._ID,
                 DbContract.DbEntry.COLUMN_DATE,
@@ -231,30 +245,41 @@ public class Record_exercise extends AppCompatActivity implements Button.OnClick
         {
             if (cursor.getCount() > 0) {
                 Log.d("ttt", "데이터가 있습니다.");
+                ArrayList<Entry> entrie_init = new ArrayList<Entry>();
                 while (cursor.moveToNext()) {
                     String itemdate = cursor.getString(
                             cursor.getColumnIndexOrThrow(DbContract.DbEntry.COLUMN_DATE)); //날짜 형식 문자열로 받아오기
                     int itemcount = cursor.getInt(cursor.getColumnIndexOrThrow(DbContract.DbEntry.COLUMN_COUNT)); //횟수 받아오기
 
-                    entrie_Input(itemdate, itemcount); //entrie에 데이터 집어넣기
+                    entrie_init.add(new Entry(stringToLong(itemdate),itemcount));
                 }
+                entrie_sort(entrie_init);
+                for(int i=0;i<entrie_init.size();i++)
+                {
+                    entrie_Input(entrie_init.get(i).getX(), (int)entrie_init.get(i).getY()); //entrie에 데이터 집어넣기
+                }
+
                 if(last_flag==true&&start_date <=before_ldate && end_date >=before_ldate)
                     entries.add(new Entry(before_ldate, mCount));
-                //여기에 Entry 정렬 소스 추가
+
             } else {
                 Log.d("ttt", "조회결과가 없습니다.");
             }
         }
     }
 
-    private void entrie_sort(ArrayList<Entry> entrie)
-    {
-
+    private void entrie_sort(ArrayList<Entry> entrie) {
+        Collections.sort(entrie, new Comparator<Entry>() {
+            @Override
+            public int compare(Entry o1, Entry o2) {
+                return Float.compare(o1.getX(),o2.getX());
+            }
+        });
     }
 
-    private void entrie_Input(String date, int count) {
+    private void entrie_Input(Float date, int count) {
         //SimpleDateFormat mformat = new SimpleDateFormat("yyyy/MM/dd");
-        Long mdate = stringToLong(date);
+        Long mdate = FloatToLong(date);
         float fchange = 0f;
         if(start_date <=mdate && end_date >=mdate)
         {
@@ -279,8 +304,7 @@ public class Record_exercise extends AppCompatActivity implements Button.OnClick
         Log.d("ttt","변환후 0string값");
         Log.d("ttt",mformat.format((long)fchange));
          */
-
-/*
+        /*
         if (chartFlag == 0) //년
         {
             if (yearCount == 0) {
@@ -327,8 +351,7 @@ public class Record_exercise extends AppCompatActivity implements Button.OnClick
  */
     }
 
-    private void date_Classification(int flag, Long mdate, int count)
-    {
+    private void date_Classification(int flag, Long mdate, int count) {
         if(yearCount == 0&&monthCount == 0&&dayCount==0)
         {
             monthCount = tmonth;
@@ -369,17 +392,15 @@ public class Record_exercise extends AppCompatActivity implements Button.OnClick
         }
     }
 
-    private long utcToDates(long timeMillis)
-    {
-        return (timeMillis+Calendar.getInstance().get(Calendar.ZONE_OFFSET)) / (1000*60*60*24);
+    private long utcToDates(long timeMillis) {
+        return (timeMillis+ Calendar.getInstance().get(Calendar.ZONE_OFFSET)) / (1000*60*60*24);
     }
-    private long datesToUtc(long dates)
-    {
+
+    private long datesToUtc(long dates) {
         return dates*(1000 * 60 * 60 *24);
     }
 
-    private void entriesadd(Long mdate, int count)
-    {
+    private void entriesadd(Long mdate, int count) {
         entries.add(new Entry(before_ldate,mCount));
         monthCount = tmonth;
         yearCount = tyear;
@@ -388,8 +409,13 @@ public class Record_exercise extends AppCompatActivity implements Button.OnClick
         mCount = count;
     }
 
-    private Long stringToLong(String dtext)
-    {
+    private Long FloatToLong(Float fdata) {
+        String s_num = String.valueOf(fdata);
+        s_num = s_num.substring(0,s_num.length()-2);
+        return Long.parseLong(s_num);
+    }
+
+    private Long stringToLong(String dtext) {
         Date mdate = new Date();
         Long ldate=0l;
         SimpleDateFormat format1 = new SimpleDateFormat ( "yyyy-MM-dd:HH:mm:ss", Locale.ENGLISH);
@@ -404,13 +430,12 @@ public class Record_exercise extends AppCompatActivity implements Button.OnClick
         return ldate;
     }
 
-    private void longToCalender(Long ldate)
-    {
+    private void longToCalender(Long ldate) {
         SimpleDateFormat yearFormat = new SimpleDateFormat("yyyy",Locale.getDefault());
         SimpleDateFormat monthFormat = new SimpleDateFormat("MM",Locale.getDefault());
         SimpleDateFormat dayFormat = new SimpleDateFormat("dd",Locale.getDefault());
 
-        tyear =Integer.parseInt(yearFormat.format(ldate));
+        tyear = Integer.parseInt(yearFormat.format(ldate));
         tmonth = Integer.parseInt(monthFormat.format(ldate));
         tday = Integer.parseInt(dayFormat.format(ldate));
 
@@ -451,22 +476,23 @@ public class Record_exercise extends AppCompatActivity implements Button.OnClick
         }
     }
 
-    void Chartinit()
-    {
+    void Chartinit() {
         datasetCreate(); //데이터셋 만들기 및 라인데이터 정의
         xyCreate(); //x, y축 속성 정의
         Chartdesign(); //차트 디자인 정의
         lineChart.invalidate(); //차트 그리기
     }
 
-    void datasetCreate()
-    {
+    void datasetCreate() {
         dataSet = new LineDataSet(entries, "운동횟수");
         dataSet.setLineWidth(2); //선 굴기
-        dataSet.setCircleRadius(6); //곡률
-        dataSet.setCircleColor(Color.parseColor("#FFA1B4DC")); //CircleColor 설정
-        dataSet.setCircleHoleColor(Color.BLUE); //CircleHoleColor 설정
-        dataSet.setColor(Color.BLUE); //Line Color 설정
+        dataSet.setCircleRadius(3); //곡률
+        dataSet.setDrawCircleHole(true);
+        dataSet.setDrawCircles(true);
+        dataSet.setColor(Color.WHITE); //Line Color 설정
+        dataSet.setValueTextColor(Color.WHITE);
+        dataSet.setCircleColor(Color.WHITE); //CircleColor 설정 Color.parseColor("#FFA1B4DC")
+        dataSet.setCircleHoleColor(Color.WHITE); //CircleHoleColor 설정
 
         /*
         dataSet.setDrawCircleHole(true);
@@ -484,7 +510,7 @@ public class Record_exercise extends AppCompatActivity implements Button.OnClick
     void xyCreate(){
         XAxis xAxis = lineChart.getXAxis(); //x 축 디자인
         xAxis.setPosition(XAxis.XAxisPosition.BOTTOM); //x축 표시에 대한 위치 설정
-        xAxis.setTextColor(Color.BLACK); //x축 컬러 설정
+        xAxis.setTextColor(Color.WHITE); //x축 컬러 설정
         //xAxis.setLabelCount(2); //x축 데이터를 최대 몇개까지 보여줄지. force가 true이면 반드시 보여줌
         //xAxis.setDrawLabels(true);
         //xAxis.setDrawAxisLine(true);
@@ -514,12 +540,8 @@ public class Record_exercise extends AppCompatActivity implements Button.OnClick
         }
 
          */
-
         xAxis.enableGridDashedLine(8, 24, 0);
-
         xAxis.setGranularityEnabled(true);
-
-
 
         //오른쪽 비활성화
         YAxis yRAxis = lineChart.getAxisRight(); //y축 오른쪽 디자인
@@ -530,10 +552,10 @@ public class Record_exercise extends AppCompatActivity implements Button.OnClick
         YAxis yLxis = lineChart.getAxisLeft(); //y축 왼쪽 디자인
         //yLxis.setAxisMaximum(30f); //y축 왼쪽 최대 범위
         yLxis.setAxisMinimum(0f); //y축 왼쪽 최소 범위
+        yLxis.setTextColor(Color.WHITE);
     }
 
-    void Chartdesign()
-    {
+    void Chartdesign() {
         Description description = new Description();
         description.setText("");
 
@@ -542,13 +564,14 @@ public class Record_exercise extends AppCompatActivity implements Button.OnClick
         //lineChart.getAxisLeft().setLabelCount(2);
         //lineChart.getAxisRight().setDrawLabels(false); // 오른쪽 라벨 삭제
         //lineChart.getAxisRight().setDrawGridLines(false);
-        MyMarkerView marker = new MyMarkerView(this,R.layout.activity_my_marker_view,chartFlag);
+        MyMarkerView marker = new MyMarkerView(getActivity(),R.layout.activity_my_marker_view,chartFlag);
         marker.setChartView(lineChart);
         lineChart.setMarker(marker);
 
         Legend L = lineChart.getLegend();
         L.setEnabled(true);  //false : legend 삭제
         L.setPosition(Legend.LegendPosition.ABOVE_CHART_LEFT); //legend 위치 위로
+        L.setTextColor(Color.WHITE);
         L.setYOffset(5f);
 
         lineChart.setTouchEnabled(true);
@@ -567,9 +590,5 @@ public class Record_exercise extends AppCompatActivity implements Button.OnClick
             }
         });
     }
-
-
-
-
 
 }

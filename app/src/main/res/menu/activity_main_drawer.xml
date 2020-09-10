@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:showIn="navigation_view">
+
+    <group android:checkableBehavior="single">
+        <item
+            android:id="@+id/nav_main"
+            android:icon="@drawable/ic_baseline_menu_24"
+            android:title="@string/menu_main" />
+        <item
+            android:id="@+id/nav_select"
+            android:icon="@drawable/ic_baseline_directions_run_24"
+            android:title="@string/menu_start" />
+        <item
+            android:id="@+id/nav_record"
+            android:icon="@drawable/ic_baseline_show_chart_24"
+            android:title="@string/menu_record" />
+        <item
+            android:id="@+id/nav_community"
+            android:icon="@drawable/ic_baseline_group_24"
+            android:title="@string/menu_community" />
+    </group>
+</menu>

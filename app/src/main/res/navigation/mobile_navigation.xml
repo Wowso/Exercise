@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/mobile_navigation"
+    app:startDestination="@+id/nav_main">
+
+
+    <fragment
+        android:id="@+id/nav_main"
+        android:name="com.example.exercise2.ui.main.MainFragment"
+        android:label="@string/menu_main"
+        tools:layout="@layout/fragment_main" >
+        <action
+            android:id="@+id/action_nav_main_to_nav_select"
+            app:destination="@id/nav_select" />
+        <action
+            android:id="@+id/action_nav_main_to_nav_record"
+            app:destination="@id/nav_record" />
+        <action
+            android:id="@+id/action_nav_main_to_nav_community"
+            app:destination="@id/nav_community" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/nav_select"
+        android:name="com.example.exercise2.ui.exercise.Exercise_Select_Fragment"
+        android:label="@string/menu_start"
+        tools:layout="@layout/fragment_exercise_select" >
+        <action
+            android:id="@+id/action_nav_select_to_exerciseFragment"
+            app:destination="@id/nav_exercise"
+            app:popUpTo="@id/nav_main" />
+        <argument
+            android:name="max_count"
+            app:argType="integer" />
+        <action
+            android:id="@+id/action_nav_select_to_nav_main"
+            app:destination="@id/nav_main" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/nav_record"
+        android:name="com.example.exercise2.ui.record.RecordFragment"
+        android:label="@string/menu_record"
+        android:tag="record_frag"
+        tools:layout="@layout/fragment_record" >
+        <action
+            android:id="@+id/action_nav_record_to_nav_main"
+            app:destination="@id/nav_main" />
+    </fragment>
+    <fragment
+        android:id="@+id/nav_exercise"
+        android:name="com.example.exercise2.ui.exercise.ExerciseFragment"
+        android:label="운동화면"
+        tools:layout="@layout/fragment_exercise" >
+        <action
+            android:id="@+id/action_nav_exercise_to_nav_main"
+            app:destination="@id/nav_main" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/nav_community"
+        android:name="com.example.exercise2.ui.community.CommunityFragment"
+        android:label="@string/menu_community"
+        tools:layout="@layout/fragment_community" >
+        <action
+            android:id="@+id/action_nav_community_to_nav_main"
+            app:destination="@id/nav_main" />
+    </fragment>
+
+
+</navigation>

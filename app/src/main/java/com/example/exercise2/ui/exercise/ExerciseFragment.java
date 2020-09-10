@@ -1,25 +1,29 @@
-package com.example.exercise2;
+package com.example.exercise2.ui.exercise;
 
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.ViewModelProviders;
 
-import android.app.Activity;
 import android.content.ContentValues;
-import android.content.Context;
-import android.content.Intent;
-import android.database.CursorJoiner;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Color;
 import android.os.Bundle;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
+
 import android.os.Handler;
-import android.os.Message;
-import android.text.AndroidCharacter;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.example.exercise2.DbContract;
+import com.example.exercise2.DbHelper;
+import com.example.exercise2.MainActivity;
+import com.example.exercise2.R;
 import com.github.mikephil.charting.animation.Easing;
 import com.github.mikephil.charting.charts.LineChart;
 import com.github.mikephil.charting.components.Description;
@@ -29,22 +33,20 @@ import com.github.mikephil.charting.data.Entry;
 import com.github.mikephil.charting.data.LineData;
 import com.github.mikephil.charting.data.LineDataSet;
 
-import org.w3c.dom.Text;
-
 import java.io.IOError;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.TimeZone;
 import java.util.concurrent.ThreadLocalRandom;
 
-public class Exercise extends AppCompatActivity {
+import androidx.navigation.Navigation;
 
+public class ExerciseFragment extends Fragment implements Button.OnClickListener {
+
+    private ExerciseViewModel mViewModel;
+    private View root;
     private LineChart lineChart;
-    public static Context fContext;
     private LineDataSet dataSet;
     private LineDataSet dataSet2;
     private LineData data;
@@ -86,25 +88,82 @@ public class Exercise extends AppCompatActivity {
     private boolean gyroY_Check = false;
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_exercise);
+    }
 
-        setup(); // 변수 객체 초기화
+    @Override
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
+                             @Nullable Bundle savedInstanceState) {
+        root = inflater.inflate(R.layout.fragment_exercise, container, false);
+
+        setup(root); // 변수 객체 초기화
         Chartinit(); //차트 초기화
 
         //액티비티 새로고침 스레드
+        Thread_play();
+        return root;
+    }
+
+    @Override
+    public void onClick(View v) {
+        switch (v.getId()) {
+            case R.id.bu_End:
+                End_flag(v);
+                //((MainActivity)getActivity()).replaceFragment(SlideshowFragment.newInstance());
+                break;
+            case R.id.bu_Random:
+                //db_Input(1);
+                break;
+        }
+    }
+
+    @Override
+    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
+        mViewModel = ViewModelProviders.of(this).get(ExerciseViewModel.class);
+        // TODO: Use the ViewModel
+    }
+
+    public void End_flag(View v) {
+        Stopflag = true;
+        //start_Check = true;
+        sendD("q");
+        db_Input(0); //db 데이터 삽입
+        Navigation.findNavController(v).navigate(R.id.action_nav_exercise_to_nav_main);
+    }
+
+    public void setup(View view){
+        lineChart = (LineChart)view.findViewById(R.id.lineChart);
+        mBu_End = (Button)view.findViewById(R.id.bu_End);
+        mBu_End.setOnClickListener(this);
+        mBu_Random = (Button)view.findViewById(R.id.bu_Random);
+        mBu_Random.setOnClickListener(this);
+        vGoals_Text = (TextView)view.findViewById(R.id.goals_value);
+        vCount_Text = (TextView)view.findViewById(R.id.count_value);
+        vRemain_Text = (TextView)view.findViewById(R.id.remain_value);
+        max_Count = getArguments().getInt("max_count");
+        count =0;
+        cal.setTime(mtime);
+        cal.add(Calendar.YEAR, -3);
+        start =(cal.getTime()).getTime();
+        start_Check = false;
+    }
+
+    private void Thread_play() {
         mHandler = new Handler();
         new Thread(new Runnable() {
             @Override
             public void run() {
                 while(!start_Check)
                 {
-                    sendD("a");
+                     start_Check=true;
+                     sendD("a");
                     //Stopflag = false;
                     //sendD("n");
                 }
                 while (!Stopflag){
+                    Stopflag=true;
                     Log.d("ttt","Thread play");
                     mHandler.post(new Runnable() {
                         @Override
@@ -114,55 +173,12 @@ public class Exercise extends AppCompatActivity {
                     });
                     try {
                         Thread.sleep(10);
-                    }catch (Exception e){
+                    } catch (Exception e){
                         e.printStackTrace();
                     }
                 }
             }
         }).start();
-
-        //운동종료 버튼
-        mBu_End.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Stopflag = true;
-                //start_Check = true;
-                sendD("q");
-                db_Input(0); //db 데이터 삽입
-                Intent intent;
-                intent = new Intent(Exercise.this,MainActivity.class);
-                startActivity(intent);
-
-
-            }
-        });
-
-        mBu_Random.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                db_Input(1);
-            }
-        });
-    }
-
-    public void setup(){
-        Intent intent = getIntent();
-        lineChart = (LineChart)findViewById(R.id.lineChart);
-        mBu_End = (Button)findViewById(R.id.bu_End);
-        mBu_Random = (Button)findViewById(R.id.bu_Random);
-        vGoals_Text = (TextView)findViewById(R.id.goals_value);
-        vCount_Text = (TextView)findViewById(R.id.count_value);
-        vRemain_Text = (TextView)findViewById(R.id.remain_value);
-
-        max_Count = intent.getExtras().getInt("max_count");
-        count =0;
-        cal.setTime(mtime);
-        cal.add(Calendar.YEAR, -3);
-        start =(cal.getTime()).getTime();
-        fContext =this;
-        start_Check = false;
-
-
     }
 
     public void db_Input(int flag){
@@ -184,22 +200,22 @@ public class Exercise extends AppCompatActivity {
             contentValues.put(DbContract.DbEntry.COLUMN_DATE, time1);
             contentValues.put(DbContract.DbEntry.COLUMN_COUNT, count);
 
-            SQLiteDatabase db = DbHelper.getInstance(this).getWritableDatabase();
+            SQLiteDatabase db = DbHelper.getInstance(getActivity()).getWritableDatabase();
             if(mDbId == -1) // 처음 저장 할때 id defalut값은 -1
             {
                 long newRowId = db.insert(DbContract.DbEntry.TABLE_NAME, null, contentValues);
                 Log.d("ttt","RowId : "+newRowId);
                 if(newRowId == -1){
-                    Toast.makeText(this, "저장에 문제가 발생했습니다", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getActivity(), "저장에 문제가 발생했습니다", Toast.LENGTH_SHORT).show();
                 }else{
-                    Toast.makeText(this, "저장되었습니다", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getActivity(), "저장되었습니다", Toast.LENGTH_SHORT).show();
                     Log.d("ttt","ID : " + DbContract.DbEntry._ID +" 시간 : " + time1 + " 횟수 : " + count + " X : " + target_X[A] + " Y : " + target_Y[B] + " cValue :" + cValue);
                     //setResult(RESULT_OK);
                 }
             }
         }
         else{
-            Toast.makeText(this, "횟수가 없기 때문에 저장하지 않습니다.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getActivity(), "횟수가 없기 때문에 저장하지 않습니다.", Toast.LENGTH_SHORT).show();
         }
 
     }
@@ -209,13 +225,11 @@ public class Exercise extends AppCompatActivity {
         Message_Read(s);
     }
 
-    public void sendD(String s)
-    {
-        ((MainActivity)MainActivity.mContext).sendData(s);
+    public void sendD(String s) {
+        ((MainActivity)getActivity()).sendData(s);
     }
 
-    public void Message_Read(String str)
-    {
+    public void Message_Read(String str) {
         String Check_text = new String(str.substring(0,1));
 
         if (Check_text.equals("A")) {
@@ -251,8 +265,6 @@ public class Exercise extends AppCompatActivity {
             Stopflag = true;
         }
     }
-
-
 
     private void Chartinit(){
         //차트 데이터 추가
@@ -305,8 +317,7 @@ public class Exercise extends AppCompatActivity {
         lineChart.animateY(1000, Easing.EaseInCubic);
     }
 
-    private void datasetCreate()
-    {
+    private void datasetCreate() {
         dataSet.setLineWidth(2);
         dataSet.setCircleRadius(6);
         dataSet.setCircleColor(Color.parseColor("#FFA1B4DC"));
@@ -329,14 +340,12 @@ public class Exercise extends AppCompatActivity {
         dataSet2.setDrawHighlightIndicators(false);
         dataSet2.setDrawValues(false);
     }
-    void Activity_Change() //Activity 바꾸기
-    {
-        Intent intent = new Intent(Exercise.this, MainActivity.class);
-        startActivity(intent);
-    }
 
-    void Activity_Refresh() //TextView 처리
-    {
+    void Activity_Change(){
+        Navigation.findNavController(root).navigate(R.id.action_nav_exercise_to_nav_main);
+    } //Activity 바꾸기
+
+    void Activity_Refresh() {
         if(start_Check)
             ChartRefresh(-gyroY,gyroX);
         vCount_Text.setText(String.valueOf(count));
@@ -349,10 +358,9 @@ public class Exercise extends AppCompatActivity {
             db_Input(0);
             Activity_Change();
         }
-    }
+    } //TextView 처리
 
-    void ChartRefresh(double X, double Y) //Chart 처리
-    {
+    void ChartRefresh(double X, double Y) {
         try
         {
             ArrayList<Entry> entries = new ArrayList<>();
@@ -373,7 +381,7 @@ public class Exercise extends AppCompatActivity {
         {
 
         }
-    }
+    } //Chart 처리
 
     void change_Point(){
         String[] array_word;
@@ -431,17 +439,13 @@ public class Exercise extends AppCompatActivity {
 
     }
 
-
-    void check_Count(float X1, float Y1,float X2, float Y2,float area)
-    {
-
+    void check_Count(float X1, float Y1,float X2, float Y2,float area) {
         if(((X2-area)<=X1&&(X2+area)>=X1)&&((Y2-area)<=Y1&&(Y2+area)>=Y1)&&!change_Check) // X2,Y2 +-1f 범위에 X1.Y1이 들어왔을 경우 카운트+ 그리고 change_Check 카운트가 false일때
         {
             change_Check = true;
             lineChart.animateY(1000, Easing.EaseInCubic);
             //lineChart.animateX(1000,Easing.EaseInCubic);
             //lineChart.animateXY(1000, 1000,Easing.EaseInBounce);
-
             change_Point();
         }
     }

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     package="com.example.exercise2">
 
     <uses-permission android:name="android.permission.BLUETOOTH" />
@@ -13,11 +14,14 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".MyMarkerView"></activity>
+        <activity android:name=".LoginActivity"
+            android:theme="@style/Theme.AppCompat.NoActionBar" ></activity>
+        <activity
+            android:name=".MyMarkerView"
+            tools:ignore="Instantiatable" />
         <activity
             android:name=".datePickerActivity"
             android:theme="@style/PopupTheme" />
-        <activity android:name=".Select_exercise" />
         <activity android:name=".SplashActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -25,9 +29,9 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".Record_exercise" />
-        <activity android:name=".Exercise" />
-        <activity android:name=".MainActivity" />
+        <activity
+            android:name=".MainActivity"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
     </application>
 
 </manifest>

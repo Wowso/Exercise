@@ -93,8 +93,19 @@ public class MainActivity extends AppCompatActivity {
             case R.id.action_settings:
                 bluetooth_setup();
                 return true;
-            case R.id.home:
-                getSupportFragmentManager().popBackStack();
+            case 16908332:
+                String getFragment = new String();
+                View view = getVisibleFragment().getView();
+                getFragment = re_fragment();
+                if(getFragment.equals("ExerciseFragment"))
+                {
+                    ExerciseFragment ef = getVisibleFragment_exercise();
+                    if(ef != null)
+                    {
+                        ef.End_flag(view);
+                    }
+                }
+                Navigation.findNavController(view).navigate(R.id.action_nav_exercise_to_nav_main);
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
@@ -111,12 +122,8 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onBackPressed() {
         String getFragment = new String();
-        int index_num=0;
         View view = getVisibleFragment().getView();
-        getFragment = getVisibleFragment().toString();
-        index_num = getFragment.indexOf("{",12);
-        if(index_num != -1)
-            getFragment = getFragment.substring(0,index_num);
+        getFragment = re_fragment();
 
         if(getFragment.equals("MainFragment"))
         {
@@ -145,6 +152,7 @@ public class MainActivity extends AppCompatActivity {
             if(ef != null)
             {
                 ef.End_flag(view);
+                Navigation.findNavController(view).navigate(R.id.action_nav_exercise_to_nav_main);
             }
         }
         else if(getFragment.equals("RecordFragment"))
@@ -187,6 +195,18 @@ public class MainActivity extends AppCompatActivity {
                 break;
         }
 
+    }
+
+    public String re_fragment()
+    {
+        String getFragment = new String();
+        int index_num=0;
+        View view = getVisibleFragment().getView();
+        getFragment = getVisibleFragment().toString();
+        index_num = getFragment.indexOf("{",12);
+        if(index_num != -1)
+            getFragment = getFragment.substring(0,index_num);
+        return getFragment;
     }
 
     public RecordFragment getVisibleFragment_record() {
@@ -439,9 +459,14 @@ public class MainActivity extends AppCompatActivity {
                                     handler.post(new Runnable() {
                                         @Override
                                         public void run() {
-                                            ExerciseFragment tf = getVisibleFragment_exercise();
-                                            if (tf != null) {
-                                                tf.MessagePr(text);
+                                            String getFragment = new String();
+                                            getFragment = re_fragment();
+                                            if(getFragment.equals("ExerciseFragment"))
+                                            {
+                                                ExerciseFragment tf = getVisibleFragment_exercise();
+                                                if (tf != null) {
+                                                    tf.MessagePr(text);
+                                                }
                                             }
                                         }
                                     });

@@ -110,10 +110,11 @@ public class ExerciseFragment extends Fragment implements Button.OnClickListener
         switch (v.getId()) {
             case R.id.bu_End:
                 End_flag(v);
+                Navigation.findNavController(v).navigate(R.id.action_nav_exercise_to_nav_main);
                 //((MainActivity)getActivity()).replaceFragment(SlideshowFragment.newInstance());
                 break;
             case R.id.bu_Random:
-                //db_Input(1);
+                db_Input(1);
                 break;
         }
     }
@@ -127,10 +128,10 @@ public class ExerciseFragment extends Fragment implements Button.OnClickListener
 
     public void End_flag(View v) {
         Stopflag = true;
-        //start_Check = true;
+        start_Check = true;
         sendD("q");
         db_Input(0); //db 데이터 삽입
-        Navigation.findNavController(v).navigate(R.id.action_nav_exercise_to_nav_main);
+
     }
 
     public void setup(View view){
@@ -157,14 +158,14 @@ public class ExerciseFragment extends Fragment implements Button.OnClickListener
             public void run() {
                 while(!start_Check)
                 {
-                     start_Check=true;
+                    start_Check=true;
                      sendD("a");
-                    //Stopflag = false;
+
+                    Stopflag = false;
                     //sendD("n");
                 }
                 while (!Stopflag){
-                    Stopflag=true;
-                    Log.d("ttt","Thread play");
+                    Log.d("tttt","Thread play");
                     mHandler.post(new Runnable() {
                         @Override
                         public void run() {
@@ -320,7 +321,7 @@ public class ExerciseFragment extends Fragment implements Button.OnClickListener
     private void datasetCreate() {
         dataSet.setLineWidth(2);
         dataSet.setCircleRadius(6);
-        dataSet.setCircleColor(Color.parseColor("#FFA1B4DC"));
+        dataSet.setCircleColor(Color.BLUE);
         dataSet.setCircleHoleColor(Color.BLUE);
         dataSet.setColor(Color.BLUE);
         dataSet.setDrawCircleHole(true);
@@ -354,6 +355,7 @@ public class ExerciseFragment extends Fragment implements Button.OnClickListener
         if(max_Count==count&&!Stopflag) // 모든 횟수를 끝마쳐서 저장 후 메인 이동
         {
             Stopflag = true;
+            start_Check = true;
             sendD("q");
             db_Input(0);
             Activity_Change();

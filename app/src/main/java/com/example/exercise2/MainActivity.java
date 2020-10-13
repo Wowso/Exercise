@@ -2,6 +2,7 @@ package com.example.exercise2;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
@@ -27,14 +28,17 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.example.exercise2.ui.community.CommunityFragment;
 import com.example.exercise2.ui.exercise.ExerciseFragment;
 import com.example.exercise2.ui.main.MainFragment;
 import com.example.exercise2.ui.record.RecordFragment;
 import com.google.android.material.navigation.NavigationView;
+import com.google.firebase.auth.FirebaseAuth;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -58,10 +62,13 @@ public class MainActivity extends AppCompatActivity {
     private static Thread workerThread = null; //문자열 수신에 사용되는 쓰레드
     private static byte[] readBuffer; //수신 된 문자열을 저장하기 위한 버퍼
     private static int readBufferPosition; //버퍼 내 문자 저장 위치
+    private String name;
     public static Context mContext;
 
     private TextView textView_name;
     private TextView textView;
+
+    private ImageButton btn_search;
 
     private int mYear =0;
     private int mMonth =0;
@@ -93,10 +100,15 @@ public class MainActivity extends AppCompatActivity {
             case R.id.action_settings:
                 bluetooth_setup();
                 return true;
+            case R.id.action_logout:
+                FirebaseAuth.getInstance().signOut();
+                startActivity(new Intent(this, LoginActivity.class));
+                finish();
+                return true;
             case 16908332:
                 String getFragment = new String();
                 View view = getVisibleFragment().getView();
-                getFragment = re_fragment();
+                getFragment = re_fragment(view);
                 if(getFragment.equals("ExerciseFragment"))
                 {
                     ExerciseFragment ef = getVisibleFragment_exercise();
@@ -104,9 +116,10 @@ public class MainActivity extends AppCompatActivity {
                     {
                         ef.End_flag(view);
                     }
+                    Navigation.findNavController(view).navigate(R.id.action_nav_exercise_to_nav_main);
+                    return true;
                 }
-                Navigation.findNavController(view).navigate(R.id.action_nav_exercise_to_nav_main);
-                return true;
+                return super.onOptionsItemSelected(item);
             default:
                 return super.onOptionsItemSelected(item);
         }
@@ -123,7 +136,7 @@ public class MainActivity extends AppCompatActivity {
     public void onBackPressed() {
         String getFragment = new String();
         View view = getVisibleFragment().getView();
-        getFragment = re_fragment();
+        getFragment = re_fragment(view);
 
         if(getFragment.equals("MainFragment"))
         {
@@ -163,8 +176,6 @@ public class MainActivity extends AppCompatActivity {
         {
             Navigation.findNavController(view).navigate(R.id.action_nav_community_to_nav_main);
         }
-
-
     }
 
     @Override
@@ -197,16 +208,36 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    public String re_fragment()
-    {
+    public String re_fragment(View view) {
         String getFragment = new String();
         int index_num=0;
-        View view = getVisibleFragment().getView();
         getFragment = getVisibleFragment().toString();
         index_num = getFragment.indexOf("{",12);
         if(index_num != -1)
             getFragment = getFragment.substring(0,index_num);
         return getFragment;
+    }
+    public CommunityFragment getVisibleFragment_Community() {
+        for(Fragment fragment: getSupportFragmentManager().getFragments())
+        {
+            if(fragment.isVisible())
+            {
+                return ((CommunityFragment)fragment.getChildFragmentManager().getPrimaryNavigationFragment());
+            }
+        }
+        return null;
+    }
+
+    public FragmentManager getSupportFragmentChildManager()
+    {
+        for(Fragment fragment: getSupportFragmentManager().getFragments())
+        {
+            if(fragment.isVisible())
+            {
+                return fragment.getChildFragmentManager();
+            }
+        }
+        return null;
     }
 
     public RecordFragment getVisibleFragment_record() {
@@ -254,8 +285,16 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setup() {
+        String result_email;
+        Intent intent;
+        intent = getIntent();
+        name = data_move("certifi_key");
+        result_email = data_move("email_key");
+
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+
+        ActionBar actionBar = getSupportActionBar();
 
         DrawerLayout drawer = findViewById(R.id.drawer_layout);
 
@@ -273,29 +312,40 @@ public class MainActivity extends AppCompatActivity {
 
         View view = navigationView.getHeaderView(0);
         textView_name = (TextView)view.findViewById(R.id.text_title);
-        textView_name.setText("기기번호 : "+data_move("certifi_key"));
+        textView_name.setText(result_email+" 기기 번호: "+name);
         textView = (TextView)view.findViewById(R.id.textView);
-        textView.setText("인증되었습니다.");
+        textView.setText("로그인 되었습니다.");
 
-        devices_check();
+        //devices_check();
 
 
     } //Toolbar 및 네비게이션 활성화
 
     public void devices_check()
     {
+        String getFragment = new String();
+        View view = getVisibleFragment().getView();
+        getFragment = re_fragment(view);
         if(bluetoothDevice == null)
         {
-            MainFragment mf = getVisibleFragment_main();
-            if (mf != null) {
-                mf.text_change(0);
+            if(getFragment.equals("MainFragment"))
+            {
+                MainFragment mf = getVisibleFragment_main();
+                if(mf != null)
+                {
+                    mf.text_change(0);
+                }
             }
         }
         else if(bluetoothDevice !=null)
         {
-            MainFragment mf = getVisibleFragment_main();
-            if (mf != null) {
-                mf.text_change(1);
+            if(getFragment.equals("MainFragment"))
+            {
+                MainFragment mf = getVisibleFragment_main();
+                if(mf != null)
+                {
+                    mf.text_change(1);
+                }
             }
         }
     }
@@ -311,6 +361,12 @@ public class MainActivity extends AppCompatActivity {
         else if(key == 2)
             startActivityForResult(intent, REQ_ADD_EDATE);
     }
+    public void Post_activity() {
+        Intent intent;
+        intent = new Intent(MainActivity.this, NewPostActivity.class);
+        intent.putExtra("mid", name);
+        startActivity(intent);
+    }
 
     public void replaceFragment(Fragment fragment) {
         FragmentManager fragmentManager = getSupportFragmentManager();
@@ -318,10 +374,22 @@ public class MainActivity extends AppCompatActivity {
         fragmentTransaction.replace(R.id.nav_host_fragment, fragment).commit();
     } //Fragment 화면 전환 - 쓰이지않음
 
-    public String data_move(String key) {
+    private String data_move(String key) {
         Intent intent = getIntent();
-        return intent.getExtras().getString(key);
+        String std = intent.getExtras().getString(key);
+        return std;
     } //intent로 넘겨받은 데이터 출력
+
+    public String email_move(String key) {
+        Intent intent = getIntent();
+        String std = intent.getExtras().getString(key);
+        if(std.contains("@"))
+        {
+            return std.split("@")[0];
+        }
+        return std;
+    } //intent로 넘겨받은 데이터 출력
+
 
     public void bluetooth_setup() {
         //블루투스 활성화 부분
@@ -395,7 +463,7 @@ public class MainActivity extends AppCompatActivity {
             //사용자가 선택한 이름과 같은 디바이스로 설정하고 반복문 종료
             if(deviceName.equals(tempDevice.getName())){
                 bluetoothDevice = tempDevice;
-                devices_check();
+
                 break;
             }
         }
@@ -408,6 +476,8 @@ public class MainActivity extends AppCompatActivity {
             bluetoothSocket = bluetoothDevice.createRfcommSocketToServiceRecord(uuid);
             bluetoothSocket.connect();
 
+            if(bluetoothSocket != null)
+                devices_check();
             //데이터 송,수신 스트림을 얻어옵니다.
             outputStream = bluetoothSocket.getOutputStream();
             inputStream = bluetoothSocket.getInputStream();
@@ -460,7 +530,8 @@ public class MainActivity extends AppCompatActivity {
                                         @Override
                                         public void run() {
                                             String getFragment = new String();
-                                            getFragment = re_fragment();
+                                            View view = getVisibleFragment().getView();
+                                            getFragment = re_fragment(view);
                                             if(getFragment.equals("ExerciseFragment"))
                                             {
                                                 ExerciseFragment tf = getVisibleFragment_exercise();
@@ -495,7 +566,7 @@ public class MainActivity extends AppCompatActivity {
     } //블루투스를 통해 받은 데이터 출력
 
     public void sendData(String text){
-        if(bluetoothDevice !=null)
+        if(bluetoothSocket !=null)
         {
             //문자열에 개행문자("\n")를 추가
             text += "\n";

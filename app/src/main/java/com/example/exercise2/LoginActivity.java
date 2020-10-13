@@ -1,10 +1,13 @@
 package com.example.exercise2;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -12,51 +15,77 @@ import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import com.example.exercise2.databinding.ActivityLoginBinding;
+import com.example.exercise2.models.User;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.auth.AuthResult;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseAuthInvalidUserException;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 
-public class LoginActivity extends AppCompatActivity implements Button.OnClickListener {
+public class LoginActivity extends BaseActivity implements Button.OnClickListener {
 
-    private Button btn_next;
-    private EditText edit_password;
-    private CheckBox cb_login;
+    private static final String TAG = "LoginActivity";
+
+    private static final int REQUEST_ACT = 1;
+    private DatabaseReference mDatabase;
+    private FirebaseAuth mAuth;
+
     private Context mContext;
     private ArrayList<String> certifi_number = new ArrayList<String>(Arrays.asList("B001","B002","B003","B004","B005","B006","B007","B008","B009"));
     private static boolean certifi_boolean = false;
+    private ActivityLoginBinding binding;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_login);
+        binding = ActivityLoginBinding.inflate(getLayoutInflater());
+        setContentView(binding.getRoot());
 
         setup();
         login_check();
     }
 
     @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if(resultCode != RESULT_OK){
+            Toast.makeText(LoginActivity.this,"오류 발생",Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if(requestCode == REQUEST_ACT)
+        {
+            String result_Email = data.getStringExtra("result_email");
+            String result_Password = data.getStringExtra("result_password");
+            binding.fieldEmail.setText(result_Email);
+            binding.fieldPassword.setText(result_Password);
+
+            Toast.makeText(LoginActivity.this,"회원가입 완료",Toast.LENGTH_SHORT).show();
+        }
+        else{
+            Toast.makeText(LoginActivity.this,"오류 발생",Toast.LENGTH_SHORT).show();
+        }
+
+    }
+
+    @Override
     public void onClick(View v) {
         Intent intent;
         switch (v.getId()) {
-            case R.id.btn_next:
-                password_check(); //password 맞는지 비교
-                if(certifi_boolean) {
-                    CheckBox checkBox = (CheckBox)findViewById(R.id.checkBox);
-                    if(checkBox.isChecked()) //checkbox가 체크되어있을때 현재값 저장
-                    {
-                        PreferenceManager.setString(mContext,"certifi_key",edit_password.getText().toString());
-                    }
-                    else{ //checkbox가 해제되어있으면 저장된 내용 삭제
-                        PreferenceManager.clear(mContext);
-                    }
-                    intent = new Intent(LoginActivity.this,MainActivity.class);
-                    intent.putExtra("certifi_key",edit_password.getText().toString());
-                    startActivity(intent);
-                    finish();
-                }
-                else
-                {
-                    Toast.makeText(this, "인증번호를 확인해주세요", Toast.LENGTH_SHORT).show();
-                }
+            case R.id.btn_signup:
+                intent = new Intent(LoginActivity.this, SignUpActivity.class);
+                startActivityForResult(intent,REQUEST_ACT);
+                break;
+            case R.id.btn_login:
+                signIn();
                 break;
             case R.id.checkBox:
                 break;
@@ -66,32 +95,136 @@ public class LoginActivity extends AppCompatActivity implements Button.OnClickLi
     } //버튼 입력 처리
 
     private void setup() {
-        btn_next = (Button)findViewById(R.id.btn_next);
-        btn_next.setOnClickListener(this);
-        cb_login = (CheckBox)findViewById(R.id.checkBox);
-        cb_login.setOnClickListener(this);
-        edit_password = (EditText)findViewById(R.id.editTextTextPassword);
+        binding.btnLogin.setOnClickListener(this);
+        binding.btnSignup.setOnClickListener(this);
+        binding.checkBox.setOnClickListener(this);
+
+        mDatabase = FirebaseDatabase.getInstance().getReference();
+        mAuth = FirebaseAuth.getInstance();
+        setProgressBar(R.id.progressBar_login);
         mContext = this;
     } //객체 초기화
 
     private void login_check() {
-        String text = PreferenceManager.getString(mContext,"certifi_key");
-        if(text !="")
+        String text_device = PreferenceManager.getString(mContext,"certifi_key");
+        String text_email = PreferenceManager.getString(mContext,"email_key");
+        String text_password = PreferenceManager.getString(mContext, "password_key");
+        if(text_device !="")
         {
-            cb_login.setChecked(true);
+            binding.checkBox.setChecked(true);
         }
-        edit_password.setText(text);
+        binding.editTextTextPassword.setText(text_device);
+        binding.fieldEmail.setText(text_email);
+        binding.fieldPassword.setText(text_password);
     } //저장된 값을 불러와서 값이 있는지 없는지 확인
 
-    private void password_check() {
+    private void signIn() {
+        Log.d(TAG, "signIn");
+        if (!validateForm()) {
+            return;
+        }
+
+        showProgressBar();
+        String email = binding.fieldEmail.getText().toString();
+        String password = binding.fieldPassword.getText().toString();
+
+        mAuth.signInWithEmailAndPassword(email, password)
+                .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
+                    @Override
+                    public void onComplete(@NonNull Task<AuthResult> task) {
+                        Log.d(TAG, "signIn:onComplete:" + task.isSuccessful());
+                        hideProgressBar();
+
+                        if (task.isSuccessful()) {
+                            if(binding.checkBox.isChecked()) {
+                                PreferenceManager.setString(mContext,"email_key",binding.fieldEmail.getText().toString());
+                                PreferenceManager.setString(mContext,"password_key",binding.fieldPassword.getText().toString());
+                                PreferenceManager.setString(mContext,"certifi_key",binding.editTextTextPassword.getText().toString());
+                            }
+                            else{ //checkbox가 해제되어있으면 저장된 내용 삭제
+                                PreferenceManager.clear(mContext);
+                            }
+                            onAuthSuccess(task.getResult().getUser());
+                        } else {
+
+                            Toast.makeText(LoginActivity.this, "Sign In Failed"+"\n"+task.getException().getMessage(),
+                                    Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                });
+    }
+
+    // [START basic_write]
+    private void writeNewUser(String userId, String name, String email) {
+        User user = new User(name, email);
+        mDatabase.child("users").child(userId).setValue(user);
+    }
+    // [END basic_write]
+
+    private String usernameFromEmail(String email) {
+        if (email.contains("@")) {
+            return email.split("@")[0];
+        } else {
+            return email;
+        }
+    }
+
+    private void onAuthSuccess(FirebaseUser user) {
+        String username = usernameFromEmail(user.getEmail());
+
+        // Write new user
+        writeNewUser(user.getUid(), username, user.getEmail());
+
+        // Go to MainActivity
+        Intent intent = new Intent(LoginActivity.this,MainActivity.class);
+        intent.putExtra("email_key",binding.fieldEmail.getText().toString());
+        intent.putExtra("certifi_key",binding.editTextTextPassword.getText().toString());
+        startActivity(intent);
+        finish();
+    }
+
+    private boolean validateForm() {
+        boolean result = false;
+
         for(int i=0;i<certifi_number.size();i++)
         {
-            if(edit_password.getText().toString().equals(certifi_number.get(i)))
+            if(binding.editTextTextPassword.getText().toString().equals(certifi_number.get(i)))
             {
-                certifi_boolean=true;
+                result = true;
             }
         }
-    } //패스워드 비교
+        if(!result) {binding.editTextTextPassword.setError("device Num Error");}
+
+        if (TextUtils.isEmpty(binding.fieldEmail.getText().toString())) {
+            binding.fieldEmail.setError("Required");
+            result = false;
+        } else {
+            if(!binding.fieldEmail.getText().toString().contains("@"))
+            {
+                binding.fieldEmail.setError("이메일 형식을 확인하세요.");
+            }
+            else
+            {
+                binding.fieldEmail.setError(null);
+            }
+        }
+
+        if (TextUtils.isEmpty(binding.fieldPassword.getText().toString())) {
+            binding.fieldPassword.setError("Required");
+            result = false;
+        } else {
+            if(binding.fieldPassword.getText().toString().length()<6)
+            {
+                binding.fieldPassword.setError("패스워드를 6자리 이상으로 입력하세요.");
+            }
+            else
+            {
+                binding.fieldPassword.setError(null);
+            }
+        }
+
+        return result;
+    }
 
 
 }

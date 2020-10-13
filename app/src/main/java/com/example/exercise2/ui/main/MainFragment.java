@@ -41,8 +41,11 @@ public class MainFragment extends Fragment implements Button.OnClickListener {
         View root = inflater.inflate(R.layout.fragment_main, container, false);
 
         setup(root);
+
         return root;
     }
+
+
     @Override
     public void onClick(View view)
     {
@@ -69,7 +72,7 @@ public class MainFragment extends Fragment implements Button.OnClickListener {
         buttonCommunity = (ImageButton)view.findViewById(R.id.button_community);
         buttonCommunity.setOnClickListener(this);
         text_title1 = (TextView)view.findViewById(R.id.text_title1);
-        text_title1.setText(((MainActivity)getActivity()).data_move("certifi_key")+"님 안녕하세요");
+        text_title1.setText(((MainActivity)getActivity()).email_move("email_key")+"님 안녕하세요");
         text_title2 = (TextView)view.findViewById(R.id.text_title2);
         mContext=getActivity();
     }
